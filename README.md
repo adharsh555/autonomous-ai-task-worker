@@ -1,4 +1,4 @@
-# Autonomous AI Task Worker
+# Autonomous AI Task Worker app
 
 A narrow, working prototype for the CentrAlign AI Engineering Intern problem: an AI worker accepts a natural-language outcome, selects tools, executes against a simulated company billing application, observes results, recovers from a retryable failure, requests approval for a high-value action, verifies the outcome, and returns evidence.
 
