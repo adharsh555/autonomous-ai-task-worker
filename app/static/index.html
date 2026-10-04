@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Autonomous AI Task Worker</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17202a;background:#f5f7fa}
+*{box-sizing:border-box}body{margin:0}.shell{max-width:1120px;margin:0 auto;padding:42px 22px}.header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:28px}.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6b7280}.title{font-size:34px;line-height:1.1;margin:7px 0}.sub{color:#68707d;max-width:700px}.badge{padding:8px 11px;border:1px solid #dfe3e8;border-radius:999px;background:#fff;font-size:12px;font-weight:700}.card{background:#fff;border:1px solid #e1e5ea;border-radius:16px;box-shadow:0 8px 30px rgba(23,32,42,.05);padding:22px;margin-bottom:18px}.label{font-weight:700;font-size:14px;margin-bottom:9px;display:block}textarea{width:100%;min-height:125px;border:1px solid #cfd5dc;border-radius:12px;padding:14px;font:inherit;resize:vertical;outline:none}textarea:focus{border-color:#7b8794;box-shadow:0 0 0 3px rgba(123,135,148,.12)}.actions{display:flex;gap:10px;align-items:center;margin-top:12px}button{border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;background:#18212b;color:white}button.secondary{background:#eef1f4;color:#26313b}button:disabled{opacity:.55;cursor:not-allowed}.status{font-size:13px;color:#69727e}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.trace{display:flex;flex-direction:column;gap:9px}.event{border:1px solid #e6e9ed;border-radius:10px;padding:11px 12px;background:#fafbfc}.event b{font-size:12px;text-transform:uppercase;letter-spacing:.06em}.event pre{white-space:pre-wrap;margin:7px 0 0;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#47505b}.result{font-size:15px;line-height:1.6;white-space:pre-wrap}.approval{border:1px solid #e2c878;background:#fff9e5;border-radius:12px;padding:15px}.approval strong{display:block;margin-bottom:6px}.hidden{display:none}.hint{font-size:12px;color:#737b86;margin-top:9px}@media(max-width:800px){.grid{grid-template-columns:1fr}.header{display:block}.badge{display:inline-block;margin-top:10px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="header">
+    <div><div class="eyebrow">CentrAlign AI prototype</div><h1 class="title">Autonomous AI Task Worker</h1><div class="sub">Natural-language goal → tool selection → execution → observation → recovery → verification → evidence.</div></div>
+    <div class="badge">Gemini · simulated company app</div>
+  </div>
+  <div class="card">
+    <label class="label" for="task">Task</label>
+    <textarea id="task">Find the latest invoice from Acme Corp, extract the amount and due date, enter it into our internal billing system, verify that it was saved, and tell me what happened.</textarea>
+    <div class="actions"><button id="run">Run worker</button><span class="status" id="status">Ready</span></div>
+    <div class="hint">Try Acme for normal execution, Globex for retry recovery, or Umbrella Labs for human approval.</div>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="label">Execution trace</div><div id="trace" class="trace"><div class="status">No run yet.</div></div></div>
+    <div class="card"><div class="label">Outcome</div><div id="result" class="result">Waiting for a task.</div><div id="approval" class="approval hidden"><strong>Human approval required</strong><div id="approvalText"></div><div class="actions"><button id="approve">Approve</button><button class="secondary" id="deny">Deny</button></div></div></div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id); let runId=null;
+function render(data){runId=data.run_id||runId;$('status').textContent=data.status.replaceAll('_',' ');$('result').textContent=data.final||'Worker is executing…';$('trace').innerHTML='';(data.trace||[]).forEach(e=>{const d=document.createElement('div');d.className='event';const b=document.createElement('b');b.textContent=e.event;d.appendChild(b);const p=document.createElement('pre');p.textContent=JSON.stringify(e,null,2);d.appendChild(p);$('trace').appendChild(d)});if(data.pending_approval){$('approval').classList.remove('hidden');$('approvalText').textContent=`A billing write of $${Number(data.pending_approval.args.amount).toLocaleString()} is above the $5,000 approval threshold.`}else{$('approval').classList.add('hidden')}}
+$('run').onclick=async()=>{ $('run').disabled=true;$('status').textContent='running'; try{const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task:$('task').value})});render(await r.json())}catch(e){$('result').textContent=e.message}finally{$('run').disabled=false}};
+async function decide(approved){$('approve').disabled=true;$('deny').disabled=true;const r=await fetch(`/api/runs/${runId}/approval`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approved})});render(await r.json());$('approve').disabled=false;$('deny').disabled=false}
+$('approve').onclick=()=>decide(true);$('deny').onclick=()=>decide(false);
+</script>
+</body></html>
